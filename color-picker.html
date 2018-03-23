@@ -15,6 +15,14 @@
             font-size: 0;
         }
 
+        #trg-box {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 60px;
+            height: 40px;
+            border: 1px solid red;
+        }
     </style>
     <script src="dist/jquery-3.2.1.min.js"></script>
     <script src="src/color-picker.js" picker-id="x-color-picker"></script>
@@ -25,19 +33,31 @@
                 picker = ColorPicker.create({
                     destroyOld:     true,
                     destroyOnBlur:  true,
+                    debounce: {
+                //      selected: 1000,
+                        preview:  50,
+                    },
+                    defaultPreview: false,
+                    onColorSelected: function(hexColor) {
+                        $('#trg-box').css({'background-color': hexColor});
+                        $(this).find('+label').text(hexColor);
+                    },
+                    onColorPreview: function(hexColor) {
+                        $(this).find('+label').text(hexColor);
+                        $('body').css({'background-color': hexColor});
+                    },
                     control:        true,
                     undoable:       true,
                 });
 
-                picker.show(this, function(hexColor) {
-                    $(this).find('+label').text(hexColor);
-                });
+                picker.show(this);
             });
 
         });
     </script>
 </head>
 <body>
+    <div id="trg-box"></div>
     <span class="color-pickable" color="#FF0000" style="background-color: #ff0000;"></span>
     <label></label>
     <span class="color-pickable" color="#FFFF00" style="background-color: #ffff00;"></span>

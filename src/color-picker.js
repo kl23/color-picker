@@ -138,9 +138,37 @@ var pickerId = 'color-picker';
 
 //---------------------------------------------------------------------
 
+
+window.Debounce = function(mustDo, debouncedDo, debounceTime) {
+	debounceTime = Number(debounceTime);
+		if (debounceTime > 0) {
+			var debounceTimerId = null;
+			var _l_args;
+
+			return function()
+			{
+				_l_args = arguments;
+				mustDo.apply(this, arguments);
+
+				if (debounceTimerId) { return; }
+				debounceTimerId = setTimeout(function() {
+					debouncedDo.apply(this, _l_args);
+					debounceTimerId = null;
+				}, debounceTime);
+			};
+		} else {
+			return function() {
+				mustDo.apply(this, arguments);
+				debouncedDo.apply(this, arguments);
+			}
+		}
+};
+
 window.ColorPicker = (function() {
 	function _i_create(opt)
 	{
+		if (!opt) { opt = {}; }
+
 		// declare class fields
 		var __ins       = null;
 		var _tmp_color  = null;
@@ -150,24 +178,96 @@ window.ColorPicker = (function() {
 		var $hue        = null;
 
 		// callback
-		var colorSelected = null;
+		var onColorSelected = null;
+		var onColorPreview  = null;
 
 		// drawer
 		var cvs		   = null;  // declare scope
 		var ctx		   = null;
 
+		// controller varible
+		var isUseDefaultPreview = true;
+		var debounceTime        = {};
+
 
 		// pre-initialization
+		onColorSelected = 'function' === typeof opt.onColorSelected ? opt.onColorSelected : null;
+		onColorPreview  = 'function' === typeof opt.onColorPreview  ? opt.onColorPreview : null;
+
+		isUseDefaultPreview = !!opt.defaultPreview;
+
 		if (opt.destroyOld) {
 			$(pickerId).each(function(e) { this.instance.destroy(); });
+		}
+
+		if (opt.debounce) {
+			// debouncing time for set color event.
+			if (opt.debounce.preview) {
+				debounceTime.preview = Number(opt.debounce.preview);
+			}
+			if (opt.debounce.selected) {
+				debounceTime.selected = Number(opt.debounce.selected);
+			}
+
 		}
 
 		//--------------------------------------------------------------------
 		// private functions
 		function setColor(hex)
 		{
-			if (colorSelected) { colorSelected(hex); }
+			if (onColorSelected) { onColorSelected.apply(_tmp_target, [hex]); }
 		}
+		var saveColor = new Debounce(
+			function mustDo(hex) {
+				_tmp_target.css({'background-color': hex});
+				_tmp_target.attr('color', hex);
+			},
+			function debouncedDo(hex) { setColor(hex); },
+			debounceTime.selected
+		);
+		// var saveColor = (function()
+		// {
+		// 	function mustDo(hex) {
+		// 		_tmp_target.css({'background-color': hex});
+		// 		_tmp_target.attr('color', hex);
+		// 	}
+		// 	function debouncedDo(hex) {
+		// 		setColor(hex);
+		// 	}
+
+		// 	if (debounceTime.selected) {
+		// 		var debounceTimerId = null;
+		// 		var _l_args;
+
+		// 		return function(hex)
+		// 		{
+		// 			_l_args = arguments;
+		// 			mustDo(hex);
+
+		// 			if (debounceTimerId) { return; }
+		// 			debounceTimerId = setTimeout(function() {
+		// 				debouncedDo.apply(this, _l_args);
+		// 				debounceTimerId = null;
+		// 			}, debounceTime.selected);
+		// 		};
+		// 	} else {
+		// 		return function() {
+		// 			mustDo.apply(this, arguments);
+		// 			debouncedDo.apply(this, arguments);
+		// 		}
+		// 	}
+		// })();
+
+		var setPreviewColor = new Debounce(
+			function mustDo(hex) {
+				if (isUseDefaultPreview) { _tmp_target.css({'background-color': hex}); }
+			},
+			function debouncedDo(hex) {
+				if (onColorPreview) { onColorPreview.apply(_tmp_target, [hex]); }
+			},
+			debounceTime.preview
+		);
+
 		function hsvToRgb(h, s, v) {
 			var C = v * s;
 			var X = C * (1 - Math.abs((h / 60) % 2 - 1));
@@ -280,8 +380,7 @@ window.ColorPicker = (function() {
 		(function initCancelButton() {
 			$btnCancel.click(function(e) {
 				__ins.destroy();
-				_tmp_target.css({'background-color': _ori_color});
-				setColor(_ori_color);
+				saveColor(_ori_color);
 			});
 		})();
 
@@ -338,7 +437,7 @@ window.ColorPicker = (function() {
 			var trgPos = $main.find('>.pick-point').position();
 			if (_tmp_target) {
 				var hex = preview_color(trgPos.left, trgPos.top);
-				setColor(_tmp_color = hex);
+				//setColor(_tmp_color = hex);
 			}
 		};
 		var preview_color = function(offsetX, offsetY)
@@ -350,7 +449,7 @@ window.ColorPicker = (function() {
 			var rgb = hsvToRgb(h, s, v);
 			var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
 
-			_tmp_target.css({'background-color': hex});
+			setPreviewColor(hex);
 			return hex;
 		}
 		setHue(0);
@@ -385,7 +484,7 @@ window.ColorPicker = (function() {
 				var hex = preview_color(offsetX, offsetY);
 				
 				if(isTouch || 1 == e.buttons) {
-					setColor(_tmp_color = hex);
+					if (onColorPreview) { onColorPreview(_tmp_color = hex); }
 					$(cvs).find('+.pick-point').css({ top: offsetY, left: offsetX });
 				}
 
@@ -412,8 +511,9 @@ window.ColorPicker = (function() {
 				});
 			})
 			.on('mouseout', function(e) {
-				_tmp_target.css({'background-color': _tmp_color});
-				_tmp_target.attr('color', _tmp_color);
+				// _tmp_target.css({'background-color': _tmp_color});
+				// _tmp_target.attr('color', _tmp_color);
+				saveColor(_tmp_color);
 			});
 
 		// -------------------------------------------------------
@@ -421,12 +521,11 @@ window.ColorPicker = (function() {
 			.hide() // ensure the picker is hidden at first, but need to be set at last for initializing size
 			.detach();
 		__ins = {
-			show: function(target, selected_callback)
+			show: function(target)
 			{
 				_tmp_target = $(target);
 				$('body').append($picker);
 
-				colorSelected = selected_callback.bind(target);
 				$picker.show();
 
 				// get HSV
