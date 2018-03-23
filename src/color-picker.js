@@ -14,6 +14,7 @@ function _init_stylesheet(pickerSelector) {
 	var styleBody = 
 " \
 #color-picker { \
+	  position: relative; \
     padding: 10px; \
     width: 360px; \
     height: 200px; \
@@ -96,6 +97,20 @@ function _init_stylesheet(pickerSelector) {
     border-radius: 50%; \
     box-sizing: border-box; \
     transform: translate(-50%, -50%); \
+} \
+#color-picker > .frame > button.cancel { \
+	position: absolute; \
+	top: 10px; \
+	right: 10px; \
+	\
+	background-color: transparent; \
+	border: none; \
+	font-size: 20px; \
+	color: #999999; \
+	cursor: pointer; \
+} \
+#color-picker > .frame > button.cancel:hover { \
+	color: red; \
 } \
 ";
 	if (pickerSelector != '#color-picker') {
@@ -208,7 +223,7 @@ window.ColorPicker = (function() {
 		// initialization
 		// init item
 		(function initPicker() {
-			$picker = $('<div id="'+pickerId+'" tabindex="0"><div class="frame"><span class="hue" value="0"><span class="pick-point"></span></span><div class="main"><canvas></canvas><span class="pick-point"></span></div></div></div>');
+			$picker = $('<div id="'+pickerId+'" tabindex="0"><div class="frame"><span class="hue" value="0"><span class="pick-point"></span></span><div class="main"><canvas></canvas><span class="pick-point"></span></div><button type="button" title="cancel" class="cancel">&times;</button></div></div>');
 			$picker
 				.appendTo($('body'))
 				// disable drag
@@ -219,6 +234,7 @@ window.ColorPicker = (function() {
 
 			$main = $picker.find('>.frame>.main');
 			$hue  = $picker.find('>.frame>.hue');
+			$btnCancel = $picker.find('>.frame>.cancel');
 
 			// set options
 			if (opt) {
@@ -258,6 +274,15 @@ window.ColorPicker = (function() {
 
 			var rImgData = cvs.toDataURL('image/jpeg');
 			$hue.css({ 'background-image': 'url(' + rImgData + ')' });
+		})();
+
+		// init cancel button
+		(function initCancelButton() {
+			$btnCancel.click(function(e) {
+				__ins.destroy();
+				_tmp_target.css({'background-color': _ori_color});
+				setColor(_ori_color);
+			});
 		})();
 
 		// features details
@@ -405,7 +430,7 @@ window.ColorPicker = (function() {
 				$picker.show();
 
 				// get HSV
-				var oriColor = $(target).attr('color');
+				var oriColor = _ori_color = $(target).attr('color');
 				var matches  = [];
 				if (oriColor && (matches = oriColor.match(/#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i)))
 				{
