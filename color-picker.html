@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <title></title>
+    <style>
+        body { width: 2000px; height: 2000px; padding: 200px; }
+
+        .color-pickable {
+            display: inline-block;
+            margin: 20px 20px;
+            width: 20px;
+            height: 20px;
+            border: 1px solid silver;
+            font-size: 0;
+        }
+
+    </style>
+    <script src="dist/jquery-3.2.1.min.js"></script>
+    <script src="src/color-picker.js" picker-id="x-color-picker"></script>
+    <script defer>
+        $(document).ready(function() {
+            var picker;
+            $('.color-pickable').click(function(e) {
+                picker = ColorPicker.create({
+                    destroyOld:     true,
+                    destroyOnBlur:  true,
+                    control:        true,
+                    undoable:       true,
+                });
+
+                picker.show(this, function(hexColor) {
+                    $(this).find('+label').text(hexColor);
+                });
+            });
+
+        });
+    </script>
+</head>
+<body>
+    <span class="color-pickable" color="#FF0000" style="background-color: #ff0000;"></span>
+    <label></label>
+    <span class="color-pickable" color="#FFFF00" style="background-color: #ffff00;"></span>
+    <label></label>
+    <span class="color-pickable" color="#223399" style="background-color: #223399;"></span>
+    <label></label>
+    <span class="color-pickable" color="#00FF00" style="background-color: #00ff00;"></span>
+    <label></label>
+</body>
+</html>
