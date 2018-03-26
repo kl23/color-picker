@@ -23,6 +23,14 @@
             height: 40px;
             border: 1px solid red;
         }
+        #end-box {
+            position: fixed;
+            top: 50px;
+            right: 0;
+            width: 60px;
+            height: 40px;
+            border: 1px solid red;
+        }
     </style>
     <script src="dist/jquery-3.2.1.min.js"></script>
     <script src="src/color-picker.js" picker-id="x-color-picker"></script>
@@ -46,6 +54,10 @@
                         $(this).find('+label').text(hexColor);
                         $('body').css({'background-color': hexColor});
                     },
+                    onDestroy: function(hexColor) {
+                        $('#end-box').css({'background-color': hexColor});
+                        $('body').css({'background-color': 'white'});
+                    },
                     control:        true,
                     undoable:       true,
                 });
@@ -57,7 +69,8 @@
     </script>
 </head>
 <body>
-    <div id="trg-box"></div>
+    <div id="trg-box">T</div>
+    <div id="end-box">D</div>
     <span class="color-pickable" color="#FF0000" style="background-color: #ff0000;"></span>
     <label></label>
     <span class="color-pickable" color="#FFFF00" style="background-color: #ffff00;"></span>

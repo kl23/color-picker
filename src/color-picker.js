@@ -180,6 +180,7 @@ window.ColorPicker = (function() {
 		// callback
 		var onColorSelected = null;
 		var onColorPreview  = null;
+		var onDestroy       = null;
 
 		// drawer
 		var cvs		   = null;  // declare scope
@@ -191,8 +192,10 @@ window.ColorPicker = (function() {
 
 
 		// pre-initialization
-		onColorSelected = 'function' === typeof opt.onColorSelected ? opt.onColorSelected : null;
-		onColorPreview  = 'function' === typeof opt.onColorPreview  ? opt.onColorPreview : null;
+		function strictAsFunc(fn) { return 'function' === typeof fn ? fn : null; }
+		onColorSelected = strictAsFunc(opt.onColorSelected);
+		onColorPreview  = strictAsFunc(opt.onColorPreview);
+		onDestroy       = strictAsFunc(opt.onDestroy);
 
 		isUseDefaultPreview = !!opt.defaultPreview;
 
@@ -225,38 +228,6 @@ window.ColorPicker = (function() {
 			function debouncedDo(hex) { setColor(hex); },
 			debounceTime.selected
 		);
-		// var saveColor = (function()
-		// {
-		// 	function mustDo(hex) {
-		// 		_tmp_target.css({'background-color': hex});
-		// 		_tmp_target.attr('color', hex);
-		// 	}
-		// 	function debouncedDo(hex) {
-		// 		setColor(hex);
-		// 	}
-
-		// 	if (debounceTime.selected) {
-		// 		var debounceTimerId = null;
-		// 		var _l_args;
-
-		// 		return function(hex)
-		// 		{
-		// 			_l_args = arguments;
-		// 			mustDo(hex);
-
-		// 			if (debounceTimerId) { return; }
-		// 			debounceTimerId = setTimeout(function() {
-		// 				debouncedDo.apply(this, _l_args);
-		// 				debounceTimerId = null;
-		// 			}, debounceTime.selected);
-		// 		};
-		// 	} else {
-		// 		return function() {
-		// 			mustDo.apply(this, arguments);
-		// 			debouncedDo.apply(this, arguments);
-		// 		}
-		// 	}
-		// })();
 
 		var setPreviewColor = new Debounce(
 			function mustDo(hex) {
@@ -316,7 +287,10 @@ window.ColorPicker = (function() {
 			return '#' + ('000000' + ((r << 16) | (g << 8) | b).toString(16)).slice(-6);
 		}
 		function getHue() {
-			return Math.round(parseFloat($hue.data('value')) * 100) / 100;
+			var hue = Math.round(parseFloat($hue.data('value')) * 100) / 100;
+			while (hue >= 360) { hue -= 360; }
+			while (hue < 0) { hue += 360; }
+			return hue;
 		}
 		//--------------------------------------------------------------------
 
@@ -329,7 +303,7 @@ window.ColorPicker = (function() {
 				// disable drag
 				.on('dragstart', function(e) { e.preventDefault(); e.stopPropagation(); })
 				// disable context menu
-				.on('contextmenu', function (e) { e.preventDefault(); e.stopPropagation(); })
+				.on('contextmenu', function(e) { e.preventDefault(); e.stopPropagation(); })
 				.css({ position: 'relative', top: 0, left: 0, opacity: 0 });
 
 			$main = $picker.find('>.frame>.main');
@@ -378,9 +352,9 @@ window.ColorPicker = (function() {
 
 		// init cancel button
 		(function initCancelButton() {
-			$btnCancel.click(function(e) {
+		    $btnCancel.click(function(e) {
+		        saveColor(_tmp_color = _ori_color);
 				__ins.destroy();
-				saveColor(_ori_color);
 			});
 		})();
 
@@ -511,8 +485,6 @@ window.ColorPicker = (function() {
 				});
 			})
 			.on('mouseout', function(e) {
-				// _tmp_target.css({'background-color': _tmp_color});
-				// _tmp_target.attr('color', _tmp_color);
 				saveColor(_tmp_color);
 			});
 
@@ -534,7 +506,8 @@ window.ColorPicker = (function() {
 				if (oriColor && (matches = oriColor.match(/#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i)))
 				{
 					// set tmp
-					setColor(_tmp_color = oriColor);
+					_tmp_color = oriColor;
+
 					// calculate HSV
 					var r = parseInt(matches[1], 16);
 					var g = parseInt(matches[2], 16);
@@ -580,6 +553,7 @@ window.ColorPicker = (function() {
 			{
 				$picker[0].instance = null;
 				$picker.remove();
+				if (onDestroy) { onDestroy(_tmp_color); }
 			}
 		};
 
